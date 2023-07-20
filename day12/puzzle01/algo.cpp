@@ -28,6 +28,7 @@ typedef struct s_cave
 
 typedef std::pair<t_cave, std::vector<std::string> > cave;
 typedef std::vector<cave> cave_system;
+typedef std::vector<std::vector<std::string> > paths;
 
 std::pair<std::string, std::string> split(std::string &line, char sep)
 {
@@ -87,22 +88,109 @@ void 	print_system(cave_system &system)
 	}
 }
 
-void	explore_system(cave_system &cave_system)
+bool	already_visited(cave_system &cave_system, std::string &name)
 {
-	cave_system::iterator	start = cave_system.begin();
-	while ((*start).first.name.compare("start") != 0)
-		start++;
-	
+	cave_system::iterator end = cave_system.end();
+	for (cave_system::iterator it = cave_system.begin(); it != end; it++)
+	{
+		if ((*it).first.name.compare(name) == 0 && (*it).first.visited == 1)
+			return (true);
+	}
+	return (false);
+}
+
+bool	is_small_cave(std::string &name)
+{
+	if (islower(name[0]))
+		return (true);
+	return (false);
+}
+
+void	set_as_visited(cave_system &cave_system, std::string &name)
+{
+	cave_system::iterator end = cave_system.end();
+	for (cave_system::iterator it = cave_system.begin(); it != end; it++)
+	{
+		if ((*it).first.name.compare(name) == 0 && is_small_cave(name))
+			(*it).first.visited = 1;
+	}
+}
+
+void	set_as_not_visited(cave_system &cave_system, std::string &name)
+{
+	cave_system::iterator end = cave_system.end();
+	for (cave_system::iterator it = cave_system.begin(); it != end; it++)
+	{
+		if ((*it).first.name.compare(name) == 0 && (*it).first.name.compare("start") != 0)
+			(*it).first.visited = 0;
+	}
+}
+
+cave_system::iterator	get_node(cave_system &cave_system, std::string &name)
+{
+	cave_system::iterator end = cave_system.end();
+	for (cave_system::iterator it = cave_system.begin(); it != end; it++)
+	{
+		if ((*it).first.name.compare(name) == 0)
+			return (it);
+	}
+	return (cave_system.end());
+}
+
+void	explore_system(cave_system::iterator &node, cave_system &cave_system, paths &paths, std::vector<std::string> &current_path)
+{
+	if ((*node).first.name.compare("end") == 0)
+	{
+		paths.push_back(current_path);
+		current_path.pop_back();
+		return;
+	}
+	for (std::vector<std::string>::iterator it = (*node).second.begin(); it != (*node).second.end(); it++)
+	{
+		if (!already_visited(cave_system, *it))
+		{
+			set_as_visited(cave_system, *it);
+			current_path.push_back(*it);
+			cave_system::iterator next_node = get_node(cave_system, *it);
+			explore_system(next_node, cave_system, paths, current_path);
+			set_as_not_visited(cave_system, *it);
+		}
+	}
+	current_path.pop_back();
+	return;
+}
+
+void	print_paths(paths &paths)
+{
+	for (paths::iterator it = paths.begin(); it != paths.end(); it++)
+	{
+		for (std::vector<std::string>::iterator cave_it = (*it).begin(); cave_it != (*it).end(); cave_it++)
+		{
+			std::cout << *cave_it << " ";
+		}
+		std::cout << std::endl;
+	}
 }
 
 int main()
 {
 	cave_system 	cave_system;
+	paths			paths;
+	std::vector<std::string> current_path;
 	std::string		line;
 	std::ifstream	input("input.txt");
 	while (std::getline(input, line))
 		add_cave_connexion(cave_system, split(line, '-'));
 
+	cave_system::iterator	start = cave_system.begin();
+	while ((*start).first.name.compare("start") != 0)
+		start++;
+	(*start).first.visited = 1;
+	current_path.push_back((*start).first.name);
+	// print_system(cave_system);
+	// std::cout << std::endl;
+	explore_system(start, cave_system, paths, current_path);
 	
-	print_system(cave_system);
+	// print_paths(paths);
+	std::cout << paths.size() << std::endl;
 }	
